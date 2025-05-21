@@ -35,22 +35,13 @@
         }
         .draggable:active { 
             cursor: grabbing;
-            transform: scale(0.98);
         }
-        .dragging {
+        .draggable.dragging {
             opacity: 0.5;
             background: #e0f2fe !important;
             border: 1px dashed #0ea5e9 !important;
             position: relative;
             z-index: 1000;
-        }
-        #main-team-list li.placeholder, #reserve-team-list li.placeholder { /* Applica a tutti i placeholder delle liste squadra */
-            background-color: #f3f4f6;
-            border: 2px dashed #9ca3af;
-            min-height: 50px;
-            border-radius: 0.375rem;
-            margin-top: 0.5rem;
-            margin-bottom: 0.5rem;
         }
         .drag-handle {
             margin-right: 0.25rem;
@@ -62,12 +53,15 @@
             align-items: center;
             font-size: 1rem;
             opacity: 0.5;
-        }
-        .drag-handle:hover {
-            opacity: 0.8;
+            z-index: 2;
         }
         .drag-handle:active {
             cursor: grabbing;
+        }
+        .remove-btn, .captain-selector {
+            position: relative;
+            z-index: 2;
+            touch-action: manipulation;
         }
         .drag-over-active {
             outline: 2px dashed #4f46e5;
@@ -566,6 +560,130 @@
             listItem.appendChild(infoDiv); listItem.appendChild(btn);
         }
 
+        let touchStartY = 0;
+        let touchStartX = 0;
+        let isDragging = false;
+        let draggedElement = null;
+        let placeholder = null;
+
+        function handleTouchStart(e) {
+            if (e.target.closest('.remove-btn') || e.target.closest('.captain-selector')) {
+                return;
+            }
+
+            const handle = e.target.closest('.drag-handle');
+            const item = e.target.closest('.draggable');
+            
+            if (!item) return;
+            
+            touchStartY = e.touches[0].clientY;
+            touchStartX = e.touches[0].clientX;
+            draggedElement = item;
+            
+            // Piccolo delay per distinguere tra tap e drag
+            setTimeout(() => {
+                if (draggedElement === item) {
+                    isDragging = true;
+                    draggedElement.classList.add('dragging');
+                }
+            }, 100);
+        }
+
+        function handleTouchMove(e) {
+            if (!isDragging || !draggedElement) return;
+            
+            e.preventDefault();
+            const touch = e.touches[0];
+            const deltaY = touch.clientY - touchStartY;
+            const deltaX = touch.clientX - touchStartX;
+            
+            // Se il movimento è minimo, non fare nulla
+            if (Math.abs(deltaY) < 10 && Math.abs(deltaX) < 10) return;
+            
+            const targetList = document.elementFromPoint(touch.clientX, touch.clientY)?.closest('ul');
+            if (!targetList || ![editMainTeamListEl, editReserveTeamListEl, viewMainTeamListEl, viewReserveTeamListEl].includes(targetList)) return;
+
+            targetList.classList.add('drag-over-active');
+
+            if (targetList.isSameNode(editMainTeamListEl) || targetList.isSameNode(viewMainTeamListEl)) {
+                if (!placeholder) {
+                    placeholder = createPlaceholder();
+                }
+
+                const targetLi = document.elementFromPoint(touch.clientX, touch.clientY)?.closest('li.draggable:not(.dragging)');
+                if (targetLi) {
+                    const rect = targetLi.getBoundingClientRect();
+                    if (touch.clientY < rect.top + rect.height / 2) {
+                        targetList.insertBefore(placeholder, targetLi);
+                    } else {
+                        targetList.insertBefore(placeholder, targetLi.nextSibling);
+                    }
+                } else if (!targetList.querySelector('li.draggable:not(.dragging)')) {
+                    targetList.appendChild(placeholder);
+                }
+            }
+        }
+
+        function handleTouchEnd(e) {
+            if (!isDragging || !draggedElement) {
+                isDragging = false;
+                draggedElement = null;
+                return;
+            }
+
+            const touch = e.changedTouches[0];
+            const targetList = document.elementFromPoint(touch.clientX, touch.clientY)?.closest('ul');
+            
+            if (targetList && [editMainTeamListEl, editReserveTeamListEl, viewMainTeamListEl, viewReserveTeamListEl].includes(targetList)) {
+                const id = draggedElement.dataset.id;
+                const origin = draggedElement.dataset.origin;
+                
+                // Simula un evento drop
+                const dropEvent = new Event('drop');
+                dropEvent.dataTransfer = {
+                    getData: (type) => type === 'text/plain' ? id : origin
+                };
+                targetList.dispatchEvent(dropEvent);
+            }
+
+            cleanupDragState();
+            isDragging = false;
+            draggedElement = null;
+        }
+
+        function addDragAndDropListeners(mainListTarget, reserveListTarget) {
+            const items = document.querySelectorAll(`#${mainListTarget.id} li.draggable, #${reserveListTarget.id} li.draggable`);
+            
+            // Rimuovi tutti i listener esistenti
+            items.forEach(item => {
+                item.removeEventListener('touchstart', handleTouchStart);
+                item.removeEventListener('touchmove', handleTouchMove);
+                item.removeEventListener('touchend', handleTouchEnd);
+                item.removeEventListener('dragstart', handleDragStart);
+                item.removeEventListener('dragend', handleDragEnd);
+            });
+
+            // Aggiungi i nuovi listener
+            items.forEach(item => {
+                item.addEventListener('touchstart', handleTouchStart, { passive: true });
+                item.addEventListener('touchmove', handleTouchMove, { passive: false });
+                item.addEventListener('touchend', handleTouchEnd);
+                item.addEventListener('dragstart', handleDragStart);
+                item.addEventListener('dragend', handleDragEnd);
+            });
+
+            [mainListTarget, reserveListTarget].forEach(list => {
+                if (list) {
+                    list.removeEventListener('dragover', handleDragOver);
+                    list.removeEventListener('dragleave', handleDragLeave);
+                    list.removeEventListener('drop', handleDrop);
+                    list.addEventListener('dragover', handleDragOver);
+                    list.addEventListener('dragleave', handleDragLeave);
+                    list.addEventListener('drop', handleDrop);
+                }
+            });
+        }
+
         function renderTeamShared(mainListEl, reserveListEl, isViewMode) {
             if (!mainListEl || !reserveListEl) return;
             const dragHandleSVG = `<span class="material-icons drag-handle">drag_indicator</span>`;
@@ -576,23 +694,43 @@
                     const isCaptain = c.id === captainId;
                     const captainIndicator = isViewMode && isCaptain ? crownSVG : '';
                     const captainSelector = !isViewMode ? `<input type="radio" name="captain-selector" value="${c.id}" class="captain-selector ml-2" ${isCaptain ? 'checked' : ''} title="Imposta come Capitano">` : '';
-                    const removeButton = !isViewMode ? `<button class="remove-btn text-red-600 hover:text-red-800 font-semibold text-xs uppercase ml-2" data-id="${c.id}" data-type="main">Rimuovi</button>` : '';
-                    return `<li class="flex items-center p-3 bg-indigo-100 rounded-md shadow-sm text-sm draggable" draggable="true" data-id="${c.id}" data-origin="main">${dragHandleSVG}<span class="font-medium text-indigo-800 flex-grow">${c.name} (${c.cost})</span>${captainIndicator}${captainSelector}${removeButton}</li>`;
+                    const removeButton = !isViewMode ? `<button type="button" class="remove-btn text-red-600 hover:text-red-800 font-semibold text-xs uppercase ml-2" data-id="${c.id}" data-type="main">Rimuovi</button>` : '';
+                    return `<li class="flex items-center p-3 bg-indigo-100 rounded-md shadow-sm text-sm draggable" draggable="true" data-id="${c.id}" data-origin="main">
+                        ${dragHandleSVG}
+                        <span class="font-medium text-indigo-800 flex-grow">${c.name} (${c.cost})</span>
+                        ${captainIndicator}
+                        ${captainSelector}
+                        ${removeButton}
+                    </li>`;
                 }).join('');
 
             reserveListEl.innerHTML = !reserveTeam ? `<li class="text-gray-400 italic text-center py-5">Seleziona 1 riserva...</li>`
-                : `<li class="flex items-center p-3 bg-indigo-100 rounded-md shadow-sm text-sm draggable" draggable="true" data-id="${reserveTeam.id}" data-origin="reserve">${dragHandleSVG}<span class="font-medium text-indigo-800 flex-grow">${reserveTeam.name} (${reserveTeam.cost})</span>${isViewMode ? '' : `<button class="remove-btn text-orange-600 hover:text-orange-800 font-semibold text-xs uppercase ml-2" data-id="${reserveTeam.id}" data-type="reserve">Rimuovi</button>`}</li>`;
+                : `<li class="flex items-center p-3 bg-indigo-100 rounded-md shadow-sm text-sm draggable" draggable="true" data-id="${reserveTeam.id}" data-origin="reserve">
+                    ${dragHandleSVG}
+                    <span class="font-medium text-indigo-800 flex-grow">${reserveTeam.name} (${reserveTeam.cost})</span>
+                    ${isViewMode ? '' : `<button type="button" class="remove-btn text-orange-600 hover:text-orange-800 font-semibold text-xs uppercase ml-2" data-id="${reserveTeam.id}" data-type="reserve">Rimuovi</button>`}
+                </li>`;
             
             if (!isViewMode) {
-                document.querySelectorAll('#team-builder-content .remove-btn').forEach(b => b.onclick = (e) => removeContradaFromTeam(e.target.dataset.id, e.target.dataset.type));
+                document.querySelectorAll('#team-builder-content .remove-btn').forEach(b => {
+                    b.onclick = (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        removeContradaFromTeam(e.target.dataset.id, e.target.dataset.type);
+                    };
+                });
                 document.querySelectorAll('#team-builder-content .captain-selector').forEach(radio => {
-                    radio.addEventListener('change', (event) => {
-                        captainId = event.target.value;
+                    radio.onclick = (e) => {
+                        e.stopPropagation();
+                    };
+                    radio.onchange = (e) => {
+                        e.stopPropagation();
+                        captainId = e.target.value;
                         updateAndSaveAfterTeamChange();
-                    });
+                    };
                 });
             }
-            addDragAndDropListeners(mainListEl, reserveListEl); 
+            addDragAndDropListeners(mainListEl, reserveListEl);
         }
 
         function renderTeamForViewMode() {
@@ -641,13 +779,16 @@
             updateAndSaveAfterTeamChange();
         }
         
-        let draggedElement = null, placeholder = null;
         function createPlaceholder() { const p = document.createElement('li'); p.className = 'placeholder'; return p; }
         function handleDragStart(e) {
-            if (e.target.closest('button.remove-btn') || 
-                e.target.classList.contains('captain-selector') || 
-                e.target.closest('.captain-selector')) {
+            // Se l'evento è partito da un elemento interattivo, non iniziare il drag
+            if (e.target.closest('.interactive-element')) {
                 e.preventDefault();
+                return;
+            }
+
+            // Se l'evento è partito dall'area di drag, procedi
+            if (!e.target.closest('.drag-area') && !e.target.closest('.drag-handle')) {
                 return;
             }
 
@@ -779,36 +920,6 @@
         function cleanupDragVisuals() { if (placeholder && placeholder.parentNode) placeholder.remove(); document.querySelectorAll('.drag-over-active').forEach(el => el.classList.remove('drag-over-active')); placeholder = null; } 
         function cleanupDragState() { if (draggedElement) draggedElement.classList.remove('dragging'); cleanupDragVisuals(); draggedElement = null; }
 
-        function addDragAndDropListeners(mainListTarget, reserveListTarget) {
-            const items = document.querySelectorAll(`#${mainListTarget.id} li.draggable, #${reserveListTarget.id} li.draggable`);
-            items.forEach(item => {
-                item.removeEventListener('dragstart', handleDragStart);
-                item.removeEventListener('dragend', handleDragEnd);
-                item.removeEventListener('touchstart', handleDragStart);
-                item.removeEventListener('touchend', handleDragEnd);
-                item.removeEventListener('touchmove', handleDragOver);
-            });
-
-            items.forEach(item => {
-                item.addEventListener('dragstart', handleDragStart);
-                item.addEventListener('dragend', handleDragEnd);
-                item.addEventListener('touchstart', handleDragStart, { passive: false });
-                item.addEventListener('touchend', handleDragEnd);
-                item.addEventListener('touchmove', handleDragOver, { passive: false });
-            });
-
-            [mainListTarget, reserveListTarget].forEach(list => {
-                if (list) {
-                    list.removeEventListener('dragover', handleDragOver);
-                    list.removeEventListener('dragleave', handleDragLeave);
-                    list.removeEventListener('drop', handleDrop);
-                    list.addEventListener('dragover', handleDragOver);
-                    list.addEventListener('dragleave', handleDragLeave);
-                    list.addEventListener('drop', handleDrop);
-                }
-            });
-        }
-        
         function updateHomepageButtonText() {
             if (!heroManageTeamBtn || !navTeamLink) return;
             const hasTeam = mainTeam.length > 0 || reserveTeam; 
