@@ -1,0 +1,640 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fantapalio</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .hero-section {
+            background: linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)), url('https://placehold.co/1200x600/6366F1/FFFFFF?text=Fantapalio+Background');
+            background-size: cover;
+            background-position: center;
+        }
+        .message-enter {
+            opacity: 0;
+            transform: translateY(-10px);
+            transition: opacity 0.3s ease, transform 0.3s ease;
+        }
+        .message-enter-active {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        .draggable { cursor: grab; }
+        .draggable:active { cursor: grabbing; }
+        .dragging {
+            opacity: 0.5;
+            background: #e0f2fe !important;
+            border: 1px dashed #0ea5e9 !important;
+        }
+        #main-team-list li.placeholder, #reserve-team-list li.placeholder { /* Applica a tutti i placeholder delle liste squadra */
+            background-color: #f3f4f6;
+            border: 2px dashed #9ca3af;
+            min-height: 50px;
+            border-radius: 0.375rem;
+            margin-top: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+        .drag-handle {
+            margin-right: 0.75rem;
+            color: #6b7280;
+            flex-shrink: 0; 
+        }
+        .drag-over-active {
+            outline: 2px dashed #4f46e5;
+            outline-offset: 2px;
+        }
+        .main-section { display: none; }
+        .main-section.active { display: block; }
+
+        .captain-selector {
+            appearance: none;
+            border-radius: 50%;
+            width: 1.25rem; /* w-5 */
+            height: 1.25rem; /* h-5 */
+            border: 2px solid #c7d2fe; /* indigo-200 */
+            background-color: white;
+            transition: all 0.2s ease-in-out;
+            cursor: pointer;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .captain-selector:checked {
+            background-color: #4f46e5; /* indigo-600 */
+            border-color: #4f46e5;
+        }
+        .captain-selector:checked::after {
+            content: 'C';
+            color: white;
+            font-weight: bold;
+            font-size: 0.75rem; /* text-xs */
+        }
+        .captain-selector:hover:not(:checked) {
+            border-color: #818cf8; /* indigo-400 */
+        }
+        .captain-crown-indicator { /* Nuovo stile per l'icona corona */
+            width: 1.25rem; /* w-5 */
+            height: 1.25rem; /* h-5 */
+            color: #f59e0b; /* amber-500 */
+            margin-left: 0.25rem; /* ml-1 */
+            vertical-align: middle; /* Allinea meglio con il testo */
+        }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-800">
+
+    <header class="bg-indigo-700 text-white shadow-lg sticky top-0 z-50">
+        <div class="container mx-auto px-6 py-4 flex justify-between items-center">
+            <h1 class="text-3xl font-bold">Fantapalio</h1>
+            <nav>
+                <a href="#" id="nav-homepage-link" class="px-4 hover:text-indigo-200 cursor-pointer">Homepage</a>
+                <a href="#" id="nav-team-link" class="px-4 hover:text-indigo-200 cursor-pointer">Squadra</a>
+            </nav>
+        </div>
+    </header>
+
+    <main>
+        <section id="home-content" class="main-section">
+            <div class="hero-section text-white py-20 md:py-32">
+                <div class="container mx-auto px-6 text-center">
+                    <h2 class="text-4xl md:text-6xl font-bold mb-6">Benvenuto al Fantapalio!</h2>
+                    <p class="text-lg md:text-xl mb-10">Metti alla prova la tua conoscenza delle Contrade e crea la squadra vincente.</p>
+                    <button id="hero-manage-team-btn" class="bg-green-500 hover:bg-green-600 text-white font-bold py-4 px-10 rounded-lg text-xl shadow-xl transition-transform transform hover:scale-105 cursor-pointer">
+                        Caricamento...
+                    </button>
+                </div>
+            </div>
+            <div id="regolamento" class="py-16 bg-white">
+                <div class="container mx-auto px-6">
+                    <h3 class="text-3xl font-semibold text-center text-indigo-700 mb-12">Regolamento Ufficiale del Fantapalio</h3>
+                    <div class="max-w-3xl mx-auto bg-gray-50 p-8 rounded-lg shadow-xl space-y-6 text-gray-700">
+                        <div>
+                            <h4 class="text-xl font-semibold text-indigo-600 mb-2">1. Creazione della Squadra:</h4>
+                            <ul class="list-disc list-inside space-y-1 pl-4">
+                                <li>Ogni partecipante ha a disposizione <span class="font-bold">100 monete</span> per comporre la propria squadra.</li>
+                                <li>La squadra deve essere composta da <span class="font-bold">4 Contrade titolari</span> e <span class="font-bold">1 Contrada di riserva</span>.</li>
+                                <li>Una delle 4 Contrade titolari DEVE essere designata come <span class="font-bold">Capitano</span>.</li>
+                                <li>Il costo di ogni Contrada è determinato dal suo storico di vittorie e piazzamenti.</li>
+                                <li>È possibile modificare la propria squadra fino alla data e ora stabilite dall'organizzazione.</li>
+                            </ul>
+                        </div>
+                        <div>
+                            <h4 class="text-xl font-semibold text-indigo-600 mb-2">2. Punteggi:</h4>
+                            <p class="mb-1">I punteggi verranno assegnati in base ai seguenti criteri (esempio):</p>
+                            <ul class="list-disc list-inside space-y-1 pl-4">
+                                <li><span class="font-bold">Vittoria del Palio:</span> +50 punti alla Contrada</li>
+                                <li><span class="font-bold">Secondo Posto:</span> +30 punti</li>
+                                <li><span class="font-bold">Terzo Posto:</span> +20 punti</li>
+                                <li><span class="font-bold">Partecipazione alla Carriera:</span> +5 punti per ogni Contrada titolare che corre</li>
+                                <li><span class="font-bold">Bonus Capitano:</span> I punti ottenuti dalla Contrada Capitano (esclusi bonus/malus specifici del ruolo capitano) vengono raddoppiati (x2).</li>
+                                <li><span class="font-bold">Malus (es. squalifica):</span> -15 punti</li>
+                            </ul>
+                            <p class="mt-2 text-sm italic">Nota: I punteggi esatti e ulteriori bonus/malus saranno specificati dall'organizzazione prima dell'inizio.</p>
+                        </div>
+                        <div>
+                            <h4 class="text-xl font-semibold text-indigo-600 mb-2">3. Riserva:</h4>
+                            <p>La Contrada di riserva subentra automaticamente nel calcolo del punteggio qualora una delle Contrade titolari non partecipi alla Carriera del Palio. Se la Contrada sostituita era il Capitano, la squadra NON beneficerà del bonus capitano per quella Carriera (a meno che il regolamento specifico non indichi diversamente).</p>
+                        </div>
+                         <div>
+                            <h4 class="text-xl font-semibold text-indigo-600 mb-2">4. Classifica e Vincitore:</h4>
+                            <p>La classifica sarà stilata sommando i punteggi ottenuti dalle Contrade di ciascuna squadra.</p>
+                            <p>Il partecipante con il punteggio totale più alto al termine del Palio sarà proclamato vincitore del Fantapalio.</p>
+                        </div>
+                        <div>
+                            <h4 class="text-xl font-semibold text-indigo-600 mb-2">5. Fair Play:</h4>
+                            <p>Si raccomanda a tutti i partecipanti di mantenere un comportamento corretto e rispettoso.</p>
+                        </div>
+                         <p class="mt-6 text-center font-semibold text-indigo-700">In bocca al lupo a tutti i fantallenatori!</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="view-team-content" class="main-section">
+            <div class="container mx-auto max-w-3xl p-6 md:p-8 mt-8">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-3xl font-bold text-indigo-700">La Tua Squadra</h2>
+                    <div>
+                        <button id="goto-edit-team-btn" class="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg shadow-md mr-2">
+                            Modifica Squadra
+                        </button>
+                        <button id="view-back-to-home-btn" class="bg-gray-500 hover:bg-gray-600 text-white font-semibold py-2 px-4 rounded-lg shadow-md">
+                            &larr; Homepage
+                        </button>
+                    </div>
+                </div>
+                <div class="bg-indigo-50 p-6 rounded-lg shadow-md">
+                    <div class="mb-6">
+                        <h3 class="text-xl font-semibold text-indigo-600 mb-3">Contrade Titolari (<span id="view-main-team-count">0</span>/4)</h3>
+                        <p class="text-xs text-indigo-500 mb-2">Puoi riordinare o scambiare con la riserva trascinando.</p>
+                        <ul id="view-main-team-list" class="space-y-2 min-h-[220px] bg-white p-3 rounded-md border border-indigo-200"></ul>
+                    </div>
+                    <div>
+                        <h3 class="text-xl font-semibold text-indigo-600 mb-3">Riserva (<span id="view-reserve-team-count">0</span>/1)</h3>
+                        <p class="text-xs text-indigo-500 mb-2">Puoi scambiare con i titolari trascinando.</p>
+                        <ul id="view-reserve-team-list" class="min-h-[80px] bg-white p-3 rounded-md border border-indigo-200"></ul>
+                    </div>
+                </div>
+                 <div id="view-budget-display" class="mt-6 text-center text-lg font-medium text-gray-700">
+                    Budget Rimanente: <span id="view-budget-amount" class="font-bold text-green-600"></span> Monete
+                </div>
+            </div>
+        </section>
+
+        <section id="team-builder-content" class="main-section">
+            <div class="container mx-auto max-w-5xl p-6 md:p-8 mt-8">
+                 <button id="builder-back-to-home-btn" class="mb-6 bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-lg text-sm shadow-md cursor-pointer">
+                    &larr; Torna alla Homepage
+                </button>
+
+                <section id="budget-section" class="mb-8 p-6 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-lg shadow-lg text-center">
+                    <h2 class="text-2xl font-semibold">Il Tuo Budget</h2>
+                    <p class="text-4xl font-extrabold mt-1"><span id="edit-budget-amount">100</span> Monete</p>
+                </section>
+
+                <div class="grid md:grid-cols-2 gap-8">
+                    <section id="available-contrade-section" class="bg-gray-50 p-6 rounded-lg shadow-md">
+                        <h2 class="text-2xl font-semibold text-gray-700 mb-5 border-b pb-3">Contrade Disponibili (Ordinate per costo decrescente)</h2>
+                        <div id="contrade-list" class="space-y-4 max-h-[60vh] overflow-y-auto pr-2"></div>
+                    </section>
+
+                    <section id="your-team-section" class="bg-indigo-50 p-6 rounded-lg shadow-md">
+                        <h2 class="text-2xl font-semibold text-indigo-700 mb-5 border-b border-indigo-200 pb-3">Componi la Tua Squadra</h2>
+                        <div class="mb-6">
+                            <h3 class="text-xl font-semibold text-indigo-600 mb-3">Contrade Titolari (<span id="edit-main-team-count">0</span>/4) - Seleziona un Capitano</h3>
+                            <p class="text-xs text-indigo-500 mb-2">Puoi riordinare o scambiare con la riserva trascinando.</p>
+                            <ul id="edit-main-team-list" class="space-y-2 min-h-[220px] bg-white p-3 rounded-md border border-indigo-200"></ul>
+                        </div>
+                        <div>
+                            <h3 class="text-xl font-semibold text-indigo-600 mb-3">Riserva (<span id="edit-reserve-team-count">0</span>/1)</h3>
+                            <p class="text-xs text-indigo-500 mb-2">Puoi scambiare con i titolari trascinando.</p>
+                            <ul id="edit-reserve-team-list" class="min-h-[80px] bg-white p-3 rounded-md border border-indigo-200"></ul>
+                        </div>
+                    </section>
+                </div>
+
+                <section id="message-section" class="mt-8 text-center min-h-[24px]">
+                    <p id="message-text" class="text-red-600 font-semibold h-6"></p>
+                </section>
+
+                <section id="action-section" class="mt-8 text-center">
+                    <button id="save-and-view-team-btn" class="bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-8 rounded-lg text-lg shadow-md disabled:bg-gray-400" disabled>
+                        Salva e Visualizza Squadra
+                    </button>
+                    <button id="reset-team-btn" class="ml-4 bg-red-500 hover:bg-red-600 text-white font-bold py-3 px-8 rounded-lg text-lg shadow-md">
+                        Resetta Squadra
+                    </button>
+                </section>
+            </div>
+        </section>
+    </main>
+
+    <footer class="bg-indigo-800 text-indigo-200 py-8 text-center">
+        <div class="container mx-auto px-6">
+            <p>&copy; <span id="current-year"></span> Fantapalio.</p>
+        </div>
+    </footer>
+
+    <script>
+        // --- VARIABILI GLOBALI E DATI ---
+        const LS_MAIN_TEAM_KEY = 'fantapalio_mainTeam';
+        const LS_BUDGET_KEY = 'fantapalio_budget';
+        const LS_RESERVE_TEAM_KEY = 'fantapalio_reserveTeam';
+        const LS_CAPTAIN_KEY = 'fantapalio_captainId'; 
+
+        const contradeData = [
+            { id: 'aquila', name: 'Aquila', cost: 25, historicVictories: 5 }, { id: 'bruco', name: 'Bruco', cost: 15, historicVictories: 2 },
+            { id: 'chiocciola', name: 'Chiocciola', cost: 10, historicVictories: 1 }, { id: 'civetta', name: 'Civetta', cost: 20, historicVictories: 3 },
+            { id: 'drago', name: 'Drago', cost: 30, historicVictories: 6 }, { id: 'giraffa', name: 'Giraffa', cost: 22, historicVictories: 4 },
+            { id: 'istrice', name: 'Istrice', cost: 18, historicVictories: 3 }, { id: 'leocorno', name: 'Leocorno', cost: 12, historicVictories: 1 },
+            { id: 'lupa', name: 'Lupa', cost: 28, historicVictories: 5 }, { id: 'nicchio', name: 'Nicchio', cost: 10, historicVictories: 0 },
+        ];
+        let budget = 100;
+        let mainTeam = []; 
+        let reserveTeam = null; 
+        let captainId = null; 
+        const MAX_MAIN_TEAM_SIZE = 4;
+
+        // --- ELEMENTI DOM (CACHE) ---
+        let editBudgetAmountEl, contradeListEl, editMainTeamListEl, editReserveTeamListEl, 
+            editMainTeamCountEl, editReserveTeamCountEl, messageTextEl, saveAndViewTeamBtn, 
+            resetTeamBtn, heroManageTeamBtn, navHomepageLink, navTeamLink, 
+            builderBackToHomeBtn, homeContentSection, teamBuilderContentSection, viewTeamContentSection,
+            currentYearEl, viewMainTeamListEl, viewReserveTeamListEl, viewMainTeamCountEl, viewReserveTeamCountEl,
+            gotoEditTeamBtn, viewBackToHomeBtn, viewBudgetAmountEl;
+
+        function cacheDOMElements() {
+            editBudgetAmountEl = document.getElementById('edit-budget-amount');
+            contradeListEl = document.getElementById('contrade-list');
+            editMainTeamListEl = document.getElementById('edit-main-team-list');
+            editReserveTeamListEl = document.getElementById('edit-reserve-team-list');
+            editMainTeamCountEl = document.getElementById('edit-main-team-count');
+            editReserveTeamCountEl = document.getElementById('edit-reserve-team-count');
+            messageTextEl = document.getElementById('message-text');
+            saveAndViewTeamBtn = document.getElementById('save-and-view-team-btn');
+            resetTeamBtn = document.getElementById('reset-team-btn');
+            builderBackToHomeBtn = document.getElementById('builder-back-to-home-btn');
+            viewMainTeamListEl = document.getElementById('view-main-team-list');
+            viewReserveTeamListEl = document.getElementById('view-reserve-team-list');
+            viewMainTeamCountEl = document.getElementById('view-main-team-count');
+            viewReserveTeamCountEl = document.getElementById('view-reserve-team-count');
+            gotoEditTeamBtn = document.getElementById('goto-edit-team-btn');
+            viewBackToHomeBtn = document.getElementById('view-back-to-home-btn');
+            viewBudgetAmountEl = document.getElementById('view-budget-amount');
+            heroManageTeamBtn = document.getElementById('hero-manage-team-btn');
+            navHomepageLink = document.getElementById('nav-homepage-link');
+            navTeamLink = document.getElementById('nav-team-link');
+            homeContentSection = document.getElementById('home-content');
+            teamBuilderContentSection = document.getElementById('team-builder-content');
+            viewTeamContentSection = document.getElementById('view-team-content');
+            currentYearEl = document.getElementById('current-year');
+        }
+        
+        function showSection(sectionIdToShow) {
+            [homeContentSection, teamBuilderContentSection, viewTeamContentSection].forEach(section => {
+                if (section) {
+                    section.style.display = (section.id === sectionIdToShow) ? 'block' : 'none';
+                    if (section.id === sectionIdToShow) section.classList.add('active');
+                    else section.classList.remove('active');
+                }
+            });
+            window.scrollTo(0, 0);
+            if (sectionIdToShow === 'view-team-content') renderTeamForViewMode();
+            if (sectionIdToShow === 'team-builder-content') renderTeamForEditMode();
+        }
+
+        function saveStateToLocalStorage() { 
+            try { 
+                localStorage.setItem(LS_BUDGET_KEY, JSON.stringify(budget)); 
+                localStorage.setItem(LS_MAIN_TEAM_KEY, JSON.stringify(mainTeam)); 
+                localStorage.setItem(LS_RESERVE_TEAM_KEY, JSON.stringify(reserveTeam));
+                localStorage.setItem(LS_CAPTAIN_KEY, JSON.stringify(captainId)); 
+            } catch (e) { console.error("Errore salvataggio localStorage:", e); displayMessage("Impossibile salvare.", "error"); }
+        }
+        function loadStateFromLocalStorage() { 
+            try {
+                const sb = localStorage.getItem(LS_BUDGET_KEY), sm = localStorage.getItem(LS_MAIN_TEAM_KEY), sr = localStorage.getItem(LS_RESERVE_TEAM_KEY), sc = localStorage.getItem(LS_CAPTAIN_KEY);
+                if (sb !== null) budget = JSON.parse(sb); 
+                if (sm !== null) mainTeam = JSON.parse(sm); 
+                if (sr !== null) reserveTeam = JSON.parse(sr);
+                if (sc !== null) captainId = JSON.parse(sc); 
+                validateCaptaincy(); 
+            } catch (e) { 
+                console.error("Errore caricamento localStorage:", e); 
+                budget = 100; mainTeam = []; reserveTeam = null; captainId = null; 
+                saveStateToLocalStorage(); 
+            }
+        }
+        function resetAllData() {
+            if (confirm("Resettare squadra, budget e capitano?")) { 
+                budget = 100; mainTeam = []; reserveTeam = null; captainId = null;
+                saveStateToLocalStorage();    
+                refreshAllUiComponents();      
+                displayMessage("Squadra, budget e capitano resettati.", "success");
+                showSection('team-builder-content'); 
+            }
+        }
+
+        function validateCaptaincy() {
+            if (captainId && !mainTeam.some(c => c.id === captainId)) {
+                captainId = null; 
+            }
+        }
+
+        function displayMessage(text, type = 'error') { 
+            if (!messageTextEl) return; messageTextEl.textContent = text; messageTextEl.className = 'font-semibold h-6 message-enter'; void messageTextEl.offsetWidth; 
+            const tc = { error: 'text-red-600', success: 'text-green-600', info: 'text-blue-600' }; messageTextEl.classList.add(tc[type] || 'text-gray-700');
+            requestAnimationFrame(() => messageTextEl.classList.add('message-enter-active'));
+            if (text) setTimeout(() => { if (messageTextEl.textContent === text) { messageTextEl.textContent = ''; messageTextEl.classList.remove('message-enter-active');}}, 3500);
+        }
+        
+        function updateEditBudgetDisplay() { if (editBudgetAmountEl) editBudgetAmountEl.textContent = budget; }
+        function updateViewBudgetDisplay() { if (viewBudgetAmountEl) viewBudgetAmountEl.textContent = budget; }
+
+        function updateEditTeamCounts() {
+            if (editMainTeamCountEl) editMainTeamCountEl.textContent = mainTeam.length;
+            if (editReserveTeamCountEl) editReserveTeamCountEl.textContent = reserveTeam ? 1 : 0;
+        }
+        function updateViewTeamCounts() {
+            if (viewMainTeamCountEl) viewMainTeamCountEl.textContent = mainTeam.length;
+            if (viewReserveTeamCountEl) viewReserveTeamCountEl.textContent = reserveTeam ? 1 : 0;
+        }
+        function checkSaveAndViewButtonState() { 
+            if (saveAndViewTeamBtn) {
+                const isCaptainValid = captainId && mainTeam.some(c => c.id === captainId);
+                saveAndViewTeamBtn.disabled = !(mainTeam.length === MAX_MAIN_TEAM_SIZE && reserveTeam && isCaptainValid);
+            }
+        }
+
+        function renderContradeList() { 
+            if (!contradeListEl) return; contradeListEl.innerHTML = '';
+            const sorted = [...contradeData].sort((a, b) => b.cost - a.cost); 
+            sorted.forEach(c => {
+                const li = document.createElement('div'); li.className = 'contrada-item flex flex-col sm:flex-row justify-between items-start sm:items-center p-4 bg-white rounded-lg shadow-sm hover:shadow-lg';
+                li.dataset.id = c.id; infoAndButtonHTML(li, c); contradeListEl.appendChild(li);
+            });
+        }
+        function infoAndButtonHTML(listItem, contrada) { 
+            const infoDiv = document.createElement('div'); infoDiv.innerHTML = `<h3 class="font-semibold text-lg text-indigo-700">${contrada.name}</h3><p class="text-sm text-gray-600">Costo: <span class="font-bold">${contrada.cost}</span></p><p class="text-xs text-gray-400">Vittorie: ${contrada.historicVictories}</p>`;
+            const btn = document.createElement('button'); btn.className = 'text-white font-semibold py-2 px-4 rounded-md text-sm mt-3 sm:mt-0';
+            const inMain = mainTeam.some(m=>m.id===contrada.id), inRes = reserveTeam&&reserveTeam.id===contrada.id;
+            if(inMain){ btn.textContent='Rimuovi (T)'; btn.className+=' bg-red-500 hover:bg-red-600'; btn.onclick=()=>removeContradaFromTeam(contrada.id,'main');}
+            else if(inRes){ btn.textContent='Rimuovi (R)'; btn.className+=' bg-orange-500 hover:bg-orange-600'; btn.onclick=()=>removeContradaFromTeam(contrada.id,'reserve');}
+            else{ btn.textContent='Aggiungi'; btn.className+=' bg-blue-500 hover:bg-blue-600';
+                let canAdd=budget>=contrada.cost&&(mainTeam.length<MAX_MAIN_TEAM_SIZE||!reserveTeam);
+                if(canAdd)btn.onclick=()=>tryAddContrada(contrada.id);
+                else{btn.disabled=true;btn.className+=' opacity-60 cursor-not-allowed';btn.title=(budget<contrada.cost)?"Budget insuff.":"Squadra piena";}
+            }
+            listItem.appendChild(infoDiv); listItem.appendChild(btn);
+        }
+
+        function renderTeamShared(mainListEl, reserveListEl, isViewMode) {
+            if (!mainListEl || !reserveListEl) return;
+            const dragHandleSVG = `<svg class="drag-handle w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M9 4C9 4.55228 8.55228 5 8 5C7.44772 5 7 4.55228 7 4C7 3.44772 7.44772 3 8 3C8.55228 3 9 3.44772 9 4Z"/><path d="M9 12C9 12.5523 8.55228 13 8 13C7.44772 13 7 12.5523 7 12C7 11.4477 7.44772 11 8 11C8.55228 11 9 11.4477 9 12Z"/><path d="M9 20C9 20.5523 8.55228 21 8 21C7.44772 21 7 20.5523 7 20C7 19.4477 7.44772 19 8 19C8.55228 19 9 19.4477 9 20Z"/><path d="M17 4C17 4.55228 16.5523 5 16 5C15.4477 5 15 4.55228 15 4C15 3.44772 15.4477 3 16 3C16.5523 3 17 3.44772 17 4Z"/><path d="M17 12C17 12.5523 16.5523 13 16 13C15.4477 13 15 12.5523 15 12C15 11.4477 15.4477 11 16 11C16.5523 11 17 11.4477 17 12Z"/><path d="M17 20C17 20.5523 16.5523 21 16 21C15.4477 21 15 20.5523 15 20C15 19.4477 15.4477 19 16 19C16.5523 19 17 19.4477 17 20Z"/></svg>`;
+            const crownSVG = `<svg class="captain-crown-indicator" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 2a.75.75 0 01.673.418l1.882 3.815 4.21.612a.75.75 0 01.416 1.279l-3.046 2.97.719 4.192a.75.75 0 01-1.088.791L10 13.347l-3.766 1.98a.75.75 0 01-1.088-.79l.72-4.192L2.837 8.124a.75.75 0 01.416-1.28l4.21-.61L9.327 2.42A.75.75 0 0110 2zM4.472 9.68L2 11.908V14.5h16v-2.592l-2.472-2.228-.514 2.993a.75.75 0 01-1.032.63L10 14.653l-2.982 1.148a.75.75 0 01-1.032-.63l-.514-2.993z" clip-rule="evenodd" /></svg>`;
+            
+            mainListEl.innerHTML = mainTeam.length === 0 ? `<li class="text-gray-400 italic text-center py-10">Seleziona 4 titolari...</li>` 
+                : mainTeam.map(c => {
+                    const isCaptain = c.id === captainId;
+                    const captainIndicator = isViewMode && isCaptain ? crownSVG : '';
+                    const captainSelector = !isViewMode ? `<input type="radio" name="captain-selector" value="${c.id}" class="captain-selector ml-2" ${isCaptain ? 'checked' : ''} title="Imposta come Capitano">` : '';
+                    const removeButton = !isViewMode ? `<button class="remove-btn text-red-600 hover:text-red-800 font-semibold text-xs uppercase ml-2" data-id="${c.id}" data-type="main">Rimuovi</button>` : '';
+                    return `<li class="flex items-center p-3 bg-indigo-100 rounded-md shadow-sm text-sm draggable" draggable="true" data-id="${c.id}" data-origin="main">${dragHandleSVG}<span class="font-medium text-indigo-800 flex-grow">${c.name} (${c.cost})</span>${captainIndicator}${captainSelector}${removeButton}</li>`;
+                }).join('');
+
+            reserveListEl.innerHTML = !reserveTeam ? `<li class="text-gray-400 italic text-center py-5">Seleziona 1 riserva...</li>`
+                : `<li class="flex items-center p-3 bg-indigo-100 rounded-md shadow-sm text-sm draggable" draggable="true" data-id="${reserveTeam.id}" data-origin="reserve">${dragHandleSVG}<span class="font-medium text-indigo-800 flex-grow">${reserveTeam.name} (${reserveTeam.cost})</span>${isViewMode ? '' : `<button class="remove-btn text-orange-600 hover:text-orange-800 font-semibold text-xs uppercase ml-2" data-id="${reserveTeam.id}" data-type="reserve">Rimuovi</button>`}</li>`;
+            
+            if (!isViewMode) {
+                document.querySelectorAll('#team-builder-content .remove-btn').forEach(b => b.onclick = (e) => removeContradaFromTeam(e.target.dataset.id, e.target.dataset.type));
+                document.querySelectorAll('#team-builder-content .captain-selector').forEach(radio => {
+                    radio.addEventListener('change', (event) => {
+                        captainId = event.target.value;
+                        updateAndSaveAfterTeamChange();
+                    });
+                });
+            }
+            addDragAndDropListeners(mainListEl, reserveListEl); 
+        }
+
+        function renderTeamForViewMode() {
+            renderTeamShared(viewMainTeamListEl, viewReserveTeamListEl, true);
+            updateViewTeamCounts();
+            updateViewBudgetDisplay();
+        }
+        function renderTeamForEditMode() {
+            renderTeamShared(editMainTeamListEl, editReserveTeamListEl, false);
+            updateEditTeamCounts();
+            checkSaveAndViewButtonState();
+        }
+        
+        function refreshAllUiComponents() {
+            updateEditBudgetDisplay(); 
+            renderContradeList(); 
+            renderTeamForEditMode(); 
+            renderTeamForViewMode();
+            updateHomepageButtonText(); 
+        }
+        function updateAndSaveAfterTeamChange() { 
+            validateCaptaincy(); 
+            refreshAllUiComponents(); 
+            saveStateToLocalStorage(); 
+        }
+
+        function tryAddContrada(id) { 
+            const c = contradeData.find(x=>x.id===id); if(!c)return;
+            if(mainTeam.some(m=>m.id===id)||(reserveTeam&&reserveTeam.id===id)){displayMessage('Già selezionata.','info');return;}
+            if(budget<c.cost){displayMessage('Budget insuff.','error');return;}
+            if(mainTeam.length<MAX_MAIN_TEAM_SIZE){mainTeam.push(c);budget-=c.cost;displayMessage(`${c.name} titolare!`,'success');}
+            else if(!reserveTeam){reserveTeam=c;budget-=c.cost;displayMessage(`${c.name} riserva!`,'success');}
+            else{displayMessage('Squadra piena.','error');return;}
+            updateAndSaveAfterTeamChange();
+        }
+        function removeContradaFromTeam(id, type) { 
+            const c=contradeData.find(x=>x.id===id);if(!c)return;
+            if(type==='main'){
+                const i=mainTeam.findIndex(m=>m.id===id);
+                if(i>-1){
+                    if (captainId === id) captainId = null; 
+                    mainTeam.splice(i,1);budget+=c.cost;displayMessage(`${c.name} rimossa (T).`,'info');
+                }
+            }
+            else if(type==='reserve'&&reserveTeam&&reserveTeam.id===id){budget+=c.cost;reserveTeam=null;displayMessage(`${c.name} rimossa (R).`,'info');}
+            updateAndSaveAfterTeamChange();
+        }
+        
+        let draggedElement = null, placeholder = null;
+        function createPlaceholder() { const p = document.createElement('li'); p.className = 'placeholder'; return p; }
+        function handleDragStart(e) { 
+            if (e.target.closest('button.remove-btn') || e.target.classList.contains('captain-selector')) { e.preventDefault(); return; } 
+            draggedElement = e.target.closest('li.draggable'); if (!draggedElement) return;
+            e.dataTransfer.effectAllowed = 'move';
+            e.dataTransfer.setData('text/id', draggedElement.dataset.id);
+            e.dataTransfer.setData('text/origin', draggedElement.dataset.origin);
+            setTimeout(() => { if(draggedElement) draggedElement.classList.add('dragging'); }, 0);
+        }
+        function handleDragOver(e) { 
+            e.preventDefault(); if (!draggedElement) return;
+            const targetList = e.target.closest('ul'); 
+            if (!targetList || ![editMainTeamListEl, editReserveTeamListEl, viewMainTeamListEl, viewReserveTeamListEl].includes(targetList)) return;
+            targetList.classList.add('drag-over-active');
+            if (targetList.isSameNode(editMainTeamListEl) || targetList.isSameNode(viewMainTeamListEl)) {
+                if (!placeholder) placeholder = createPlaceholder(); 
+                const targetLi = e.target.closest('li.draggable:not(.dragging)');
+                if (targetLi) {
+                    const rect = targetLi.getBoundingClientRect();
+                    if (e.clientY < rect.top + rect.height / 2) targetList.insertBefore(placeholder, targetLi);
+                    else targetList.insertBefore(placeholder, targetLi.nextSibling);
+                } else if (!targetList.querySelector('li.draggable:not(.dragging)')) { 
+                    targetList.appendChild(placeholder);
+                }
+            }
+        }
+        function handleDragLeave(e) { 
+            const targetList = e.target.closest('ul');
+            if (targetList && [editMainTeamListEl, editReserveTeamListEl, viewMainTeamListEl, viewReserveTeamListEl].includes(targetList)) {
+                if (!targetList.contains(e.relatedTarget)) targetList.classList.remove('drag-over-active');
+            }
+        }
+        function handleDrop(e) {
+            e.preventDefault(); if (!draggedElement) return;
+            const id = e.dataTransfer.getData('text/id'), origin = e.dataTransfer.getData('text/origin');
+            const targetDropListEl = e.target.closest('ul'); 
+            
+            cleanupDragVisuals();
+            if (!targetDropListEl || ![editMainTeamListEl, editReserveTeamListEl, viewMainTeamListEl, viewReserveTeamListEl].includes(targetDropListEl)) {
+                cleanupDragState(); return;
+            }
+            
+            const draggedData = (origin === 'main') ? mainTeam.find(c => c.id === id) : reserveTeam;
+            if (!draggedData) { cleanupDragState(); return; }
+
+            if (origin === 'main' && draggedData.id === captainId &&
+                (targetDropListEl.isSameNode(editReserveTeamListEl) || targetDropListEl.isSameNode(viewReserveTeamListEl))) {
+                captainId = null; 
+            }
+
+            if (targetDropListEl.isSameNode(editMainTeamListEl) || targetDropListEl.isSameNode(viewMainTeamListEl)) {
+                const targetLi = e.target.closest('li.draggable:not(.dragging)');
+                if (origin === 'main') { 
+                    const oldIdx = mainTeam.findIndex(c => c.id === id); if (oldIdx === -1) { cleanupDragState(); return; }
+                    mainTeam.splice(oldIdx, 1);
+                    let newIdx = mainTeam.length; 
+                    const pInList = targetDropListEl.querySelector('.placeholder');
+                    if (pInList) newIdx = Array.from(targetDropListEl.children).indexOf(pInList);
+                    else if (targetLi) {
+                        const children = Array.from(targetDropListEl.children).filter(li => li.classList.contains('draggable') && !li.classList.contains('dragging'));
+                        const dropTargetIdx = children.indexOf(targetLi); const rect = targetLi.getBoundingClientRect();
+                        newIdx = (e.clientY < rect.top + rect.height / 2) ? dropTargetIdx : dropTargetIdx + 1;
+                    }
+                    mainTeam.splice(newIdx, 0, draggedData);
+                } else { 
+                    if (mainTeam.length < MAX_MAIN_TEAM_SIZE) {
+                        reserveTeam = null; let newIdx = mainTeam.length; 
+                        const pInList = targetDropListEl.querySelector('.placeholder');
+                        if (pInList) newIdx = Array.from(targetDropListEl.children).indexOf(pInList);
+                        else if (targetLi) { 
+                            const children = Array.from(targetDropListEl.children).filter(li => li.classList.contains('draggable') && !li.classList.contains('dragging'));
+                            const dropTargetIdx = children.indexOf(targetLi); const rect = targetLi.getBoundingClientRect();
+                            newIdx = (e.clientY < rect.top + rect.height / 2) ? dropTargetIdx : dropTargetIdx + 1;
+                        }
+                        mainTeam.splice(newIdx, 0, draggedData);
+                        if (!targetDropListEl.isSameNode(viewMainTeamListEl) || (targetDropListEl.isSameNode(viewMainTeamListEl) && mainTeam.length <=MAX_MAIN_TEAM_SIZE)) {
+                           displayMessage(`${draggedData.name} titolare.`, 'success');
+                        }
+                    } else if (targetLi) {
+                        const toBenchId = targetLi.dataset.id, toBenchData = mainTeam.find(c=>c.id===toBenchId), toBenchIdx = mainTeam.findIndex(c=>c.id===toBenchId);
+                        if(!toBenchData || toBenchIdx === -1) { cleanupDragState(); return; }
+                        mainTeam.splice(toBenchIdx, 1, draggedData); reserveTeam = toBenchData;
+                        displayMessage(`Scambio: ${draggedData.name} T, ${toBenchData.name} R.`, 'success');
+                    } else if (targetDropListEl.isSameNode(editMainTeamListEl)) displayMessage('Titolari pieni. Trascina su un titolare per scambiare.', 'info');
+                }
+            } 
+            else if (targetDropListEl.isSameNode(editReserveTeamListEl) || targetDropListEl.isSameNode(viewReserveTeamListEl)) {
+                if (origin === 'main') {
+                    const toReserveIdx = mainTeam.findIndex(c => c.id === id); if (toReserveIdx === -1) { cleanupDragState(); return; }
+                    if (!reserveTeam) { mainTeam.splice(toReserveIdx, 1); reserveTeam = draggedData; displayMessage(`${draggedData.name} riserva.`, 'success'); }
+                    else { const oldReserve = reserveTeam; reserveTeam = draggedData; mainTeam.splice(toReserveIdx, 1, oldReserve); displayMessage(`Scambio: ${draggedData.name} R, ${oldReserve.name} T.`, 'success');}
+                }
+            }
+            cleanupDragState(); updateAndSaveAfterTeamChange();
+        }
+        function handleDragEnd(e) { cleanupDragState(); }
+        function cleanupDragVisuals() { if (placeholder && placeholder.parentNode) placeholder.remove(); document.querySelectorAll('.drag-over-active').forEach(el => el.classList.remove('drag-over-active')); placeholder = null; } 
+        function cleanupDragState() { if (draggedElement) draggedElement.classList.remove('dragging'); cleanupDragVisuals(); draggedElement = null; }
+
+        function addDragAndDropListeners(mainListTarget, reserveListTarget) {
+            const items = document.querySelectorAll(`#${mainListTarget.id} li.draggable, #${reserveListTarget.id} li.draggable`);
+            items.forEach(item => {
+                item.removeEventListener('dragstart', handleDragStart); item.removeEventListener('dragend', handleDragEnd);
+                item.addEventListener('dragstart', handleDragStart); item.addEventListener('dragend', handleDragEnd);
+            });
+            [mainListTarget, reserveListTarget].forEach(list => {
+                if(list) {
+                    list.removeEventListener('dragover', handleDragOver); list.removeEventListener('dragleave', handleDragLeave); list.removeEventListener('drop', handleDrop);
+                    list.addEventListener('dragover', handleDragOver); list.addEventListener('dragleave', handleDragLeave); list.addEventListener('drop', handleDrop);
+                }
+            });
+        }
+        
+        function updateHomepageButtonText() {
+            if (!heroManageTeamBtn || !navTeamLink) return;
+            const hasTeam = mainTeam.length > 0 || reserveTeam; 
+            heroManageTeamBtn.textContent = hasTeam ? 'Visualizza La Mia Squadra' : 'Crea la Tua Squadra';
+            navTeamLink.textContent = hasTeam ? 'La Mia Squadra' : 'Crea Squadra';
+        }
+
+        function setupEventListeners() {
+            if (navHomepageLink) navHomepageLink.onclick = (e) => { e.preventDefault(); showSection('home-content'); };
+            if (navTeamLink) navTeamLink.onclick = (e) => { 
+                e.preventDefault(); 
+                loadStateFromLocalStorage(); 
+                if (mainTeam.length > 0 || reserveTeam) showSection('view-team-content');
+                else showSection('team-builder-content');
+            };
+            if (heroManageTeamBtn) heroManageTeamBtn.onclick = () => {
+                loadStateFromLocalStorage();
+                if (mainTeam.length > 0 || reserveTeam) showSection('view-team-content');
+                else showSection('team-builder-content');
+            };
+            if (builderBackToHomeBtn) builderBackToHomeBtn.onclick = () => showSection('home-content');
+            if (viewBackToHomeBtn) viewBackToHomeBtn.onclick = () => showSection('home-content');
+            if (gotoEditTeamBtn) gotoEditTeamBtn.onclick = () => showSection('team-builder-content');
+            
+            if (resetTeamBtn) resetTeamBtn.addEventListener('click', resetAllData);
+            if (saveAndViewTeamBtn) saveAndViewTeamBtn.addEventListener('click', () => {
+                if (!saveAndViewTeamBtn.disabled) {
+                    displayMessage(`Squadra salvata!`, 'success');
+                    showSection('view-team-content');
+                } else {
+                    if (!(mainTeam.length === MAX_MAIN_TEAM_SIZE && reserveTeam)) {
+                        displayMessage('Completa la squadra (4 titolari e 1 riserva).', 'info');
+                    } else if (!(captainId && mainTeam.some(c => c.id === captainId))) {
+                        displayMessage('Seleziona un capitano per la squadra.', 'info');
+                    }
+                }
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            cacheDOMElements(); 
+            loadStateFromLocalStorage(); 
+            setupEventListeners();
+            refreshAllUiComponents(); 
+            
+            if (currentYearEl) currentYearEl.textContent = new Date().getFullYear();
+            
+            if (mainTeam.length > 0 || reserveTeam) { 
+                showSection('view-team-content');
+            } else {
+                showSection('home-content'); 
+            }
+        });
+    </script>
+</body>
+</html>
