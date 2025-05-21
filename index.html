@@ -8,6 +8,7 @@
     <style>
         body {
             font-family: 'Inter', sans-serif;
+            -webkit-tap-highlight-color: transparent; /* Rimuove il highlight blu su tap su iOS */
         }
         .hero-section {
             background: linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)), url('https://placehold.co/1200x600/6366F1/FFFFFF?text=Fantapalio+Background');
@@ -23,7 +24,7 @@
             opacity: 1;
             transform: translateY(0);
         }
-        .draggable { cursor: grab; }
+        .draggable { cursor: grab; touch-action: none; }
         .draggable:active { cursor: grabbing; }
         .dragging {
             opacity: 0.5;
@@ -42,6 +43,7 @@
             margin-right: 0.75rem;
             color: #6b7280;
             flex-shrink: 0; 
+            padding: 0.5rem;
         }
         .drag-over-active {
             outline: 2px dashed #4f46e5;
@@ -84,16 +86,154 @@
             margin-left: 0.25rem; /* ml-1 */
             vertical-align: middle; /* Allinea meglio con il testo */
         }
+        
+        /* Ottimizzazioni Mobile */
+        @media (max-width: 768px) {
+            /* Header e Navigazione */
+            header .container {
+                padding: 0.75rem 1rem;
+            }
+            header nav {
+                display: flex;
+                gap: 0.5rem;
+            }
+            header nav a {
+                padding: 0.5rem;
+                font-size: 0.875rem;
+            }
+            
+            /* Hero Section */
+            .hero-section {
+                padding: 3rem 1rem;
+            }
+            .hero-section h2 {
+                font-size: 2rem;
+                line-height: 1.2;
+            }
+            .hero-section p {
+                font-size: 1rem;
+                padding: 0 1rem;
+            }
+            #hero-manage-team-btn {
+                width: 90%;
+                max-width: 300px;
+                padding: 0.75rem;
+                font-size: 1.125rem;
+            }
+            
+            /* Regolamento */
+            #regolamento {
+                padding: 2rem 1rem;
+            }
+            #regolamento .container {
+                padding: 0 1rem;
+            }
+            #regolamento h3 {
+                font-size: 1.5rem;
+                margin-bottom: 1.5rem;
+            }
+            #regolamento .max-w-3xl {
+                padding: 1rem;
+            }
+            
+            /* Team Builder */
+            .grid {
+                grid-template-columns: 1fr;
+                gap: 1.5rem;
+            }
+            #available-contrade-section,
+            #your-team-section {
+                padding: 1rem;
+            }
+            #contrade-list {
+                max-height: 40vh;
+            }
+            
+            /* Bottoni e Controlli */
+            button {
+                touch-action: manipulation; /* Migliora la risposta al touch */
+            }
+            #action-section {
+                display: flex;
+                flex-direction: column;
+                gap: 1rem;
+                padding: 0 1rem;
+            }
+            #action-section button {
+                width: 100%;
+                margin: 0;
+            }
+            
+            /* Lista Contrade */
+            .contrada-item {
+                padding: 0.75rem;
+            }
+            
+            /* Messaggi e Feedback */
+            #message-section {
+                padding: 0 1rem;
+            }
+            
+            /* Budget Display */
+            #budget-section {
+                margin: 0 1rem 1.5rem 1rem;
+                padding: 1rem;
+            }
+            
+            /* Footer */
+            footer {
+                padding: 1.5rem 1rem;
+            }
+        }
+
+        /* Miglioramenti Touch */
+        .draggable {
+            touch-action: none; /* Necessario per il drag & drop su mobile */
+        }
+        .contrada-item {
+            transition: transform 0.2s ease;
+        }
+        .contrada-item:active {
+            transform: scale(0.98);
+        }
+        
+        /* Miglioramenti Leggibilità */
+        @media (max-width: 768px) {
+            .text-lg { font-size: 1rem; }
+            .text-xl { font-size: 1.125rem; }
+            .text-2xl { font-size: 1.25rem; }
+            .text-3xl { font-size: 1.5rem; }
+            .text-4xl { font-size: 1.75rem; }
+        }
+        
+        /* Ottimizzazioni Performance */
+        .main-section {
+            will-change: transform;
+            backface-visibility: hidden;
+        }
+        
+        /* Miglioramenti Accessibilità */
+        @media (hover: none) {
+            .hover\:bg-blue-600:hover,
+            .hover\:bg-green-600:hover,
+            .hover\:bg-gray-600:hover,
+            .hover\:bg-red-600:hover {
+                background-color: inherit;
+            }
+            .hover\:scale-105:hover {
+                transform: none;
+            }
+        }
     </style>
 </head>
 <body class="bg-gray-100 text-gray-800">
 
     <header class="bg-indigo-700 text-white shadow-lg sticky top-0 z-50">
-        <div class="container mx-auto px-6 py-4 flex justify-between items-center">
-            <h1 class="text-3xl font-bold">Fantapalio</h1>
-            <nav>
-                <a href="#" id="nav-homepage-link" class="px-4 hover:text-indigo-200 cursor-pointer">Homepage</a>
-                <a href="#" id="nav-team-link" class="px-4 hover:text-indigo-200 cursor-pointer">Squadra</a>
+        <div class="container mx-auto px-4 md:px-6 py-3 md:py-4 flex justify-between items-center">
+            <h1 class="text-2xl md:text-3xl font-bold">Fantapalio</h1>
+            <nav class="flex items-center">
+                <a href="#" id="nav-homepage-link" class="px-3 md:px-4 py-2 hover:text-indigo-200 active:text-indigo-300 cursor-pointer text-sm md:text-base">Home</a>
+                <a href="#" id="nav-team-link" class="px-3 md:px-4 py-2 hover:text-indigo-200 active:text-indigo-300 cursor-pointer text-sm md:text-base">Squadra</a>
             </nav>
         </div>
     </header>
@@ -187,8 +327,8 @@
         </section>
 
         <section id="team-builder-content" class="main-section">
-            <div class="container mx-auto max-w-5xl p-6 md:p-8 mt-8">
-                 <button id="builder-back-to-home-btn" class="mb-6 bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-lg text-sm shadow-md cursor-pointer">
+            <div class="container mx-auto max-w-5xl p-4 md:p-8 mt-4 md:mt-8">
+                 <button id="builder-back-to-home-btn" class="mb-4 md:mb-6 bg-gray-500 hover:bg-gray-600 active:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg text-sm shadow-md cursor-pointer w-full md:w-auto">
                     &larr; Torna alla Homepage
                 </button>
 
@@ -197,10 +337,10 @@
                     <p class="text-4xl font-extrabold mt-1"><span id="edit-budget-amount">100</span> Monete</p>
                 </section>
 
-                <div class="grid md:grid-cols-2 gap-8">
-                    <section id="available-contrade-section" class="bg-gray-50 p-6 rounded-lg shadow-md">
-                        <h2 class="text-2xl font-semibold text-gray-700 mb-5 border-b pb-3">Contrade Disponibili (Ordinate per costo decrescente)</h2>
-                        <div id="contrade-list" class="space-y-4 max-h-[60vh] overflow-y-auto pr-2"></div>
+                <div class="grid md:grid-cols-2 gap-4 md:gap-8">
+                    <section id="available-contrade-section" class="bg-gray-50 p-4 md:p-6 rounded-lg shadow-md">
+                        <h2 class="text-xl md:text-2xl font-semibold text-gray-700 mb-4 md:mb-5 border-b pb-2 md:pb-3">Contrade Disponibili</h2>
+                        <div id="contrade-list" class="space-y-3 md:space-y-4 max-h-[50vh] md:max-h-[60vh] overflow-y-auto pr-2"></div>
                     </section>
 
                     <section id="your-team-section" class="bg-indigo-50 p-6 rounded-lg shadow-md">
@@ -218,15 +358,15 @@
                     </section>
                 </div>
 
-                <section id="message-section" class="mt-8 text-center min-h-[24px]">
+                <section id="message-section" class="mt-6 md:mt-8 text-center min-h-[24px]">
                     <p id="message-text" class="text-red-600 font-semibold h-6"></p>
                 </section>
 
-                <section id="action-section" class="mt-8 text-center">
-                    <button id="save-and-view-team-btn" class="bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-8 rounded-lg text-lg shadow-md disabled:bg-gray-400" disabled>
+                <section id="action-section" class="mt-6 md:mt-8 text-center space-y-3 md:space-y-0 md:space-x-4">
+                    <button id="save-and-view-team-btn" class="bg-green-600 hover:bg-green-700 active:bg-green-800 text-white font-bold py-3 px-6 md:px-8 rounded-lg text-base md:text-lg shadow-md disabled:bg-gray-400 w-full md:w-auto" disabled>
                         Salva e Visualizza Squadra
                     </button>
-                    <button id="reset-team-btn" class="ml-4 bg-red-500 hover:bg-red-600 text-white font-bold py-3 px-8 rounded-lg text-lg shadow-md">
+                    <button id="reset-team-btn" class="bg-red-500 hover:bg-red-600 active:bg-red-700 text-white font-bold py-3 px-6 md:px-8 rounded-lg text-base md:text-lg shadow-md w-full md:w-auto">
                         Resetta Squadra
                     </button>
                 </section>
