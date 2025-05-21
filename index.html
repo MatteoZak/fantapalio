@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Fantapalio</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
     <style>
         body {
             font-family: 'Inter', sans-serif;
@@ -24,12 +25,24 @@
             opacity: 1;
             transform: translateY(0);
         }
-        .draggable { cursor: grab; touch-action: none; }
-        .draggable:active { cursor: grabbing; }
+        .draggable { 
+            cursor: grab; 
+            touch-action: none;
+            user-select: none;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+        }
+        .draggable:active { 
+            cursor: grabbing;
+            transform: scale(0.98);
+        }
         .dragging {
             opacity: 0.5;
             background: #e0f2fe !important;
             border: 1px dashed #0ea5e9 !important;
+            position: relative;
+            z-index: 1000;
         }
         #main-team-list li.placeholder, #reserve-team-list li.placeholder { /* Applica a tutti i placeholder delle liste squadra */
             background-color: #f3f4f6;
@@ -40,10 +53,21 @@
             margin-bottom: 0.5rem;
         }
         .drag-handle {
-            margin-right: 0.75rem;
+            margin-right: 0.25rem;
             color: #6b7280;
-            flex-shrink: 0; 
-            padding: 0.5rem;
+            flex-shrink: 0;
+            cursor: grab;
+            touch-action: none;
+            display: flex;
+            align-items: center;
+            font-size: 1rem;
+            opacity: 0.5;
+        }
+        .drag-handle:hover {
+            opacity: 0.8;
+        }
+        .drag-handle:active {
+            cursor: grabbing;
         }
         .drag-over-active {
             outline: 2px dashed #4f46e5;
@@ -296,80 +320,89 @@
         </section>
 
         <section id="view-team-content" class="main-section">
-            <div class="container mx-auto max-w-3xl p-6 md:p-8 mt-8">
-                <div class="flex justify-between items-center mb-6">
-                    <h2 class="text-3xl font-bold text-indigo-700">La Tua Squadra</h2>
-                    <div>
-                        <button id="goto-edit-team-btn" class="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg shadow-md mr-2">
-                            Modifica Squadra
-                        </button>
-                        <button id="view-back-to-home-btn" class="bg-gray-500 hover:bg-gray-600 text-white font-semibold py-2 px-4 rounded-lg shadow-md">
-                            &larr; Homepage
-                        </button>
+            <div class="container mx-auto max-w-3xl p-4 md:p-8 mt-4 md:mt-8">
+                <div class="flex flex-col gap-4">
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                        <h2 class="text-2xl md:text-3xl font-bold text-indigo-700">La Tua Squadra</h2>
+                        <div class="grid grid-cols-2 gap-2 w-full sm:w-auto">
+                            <button id="goto-edit-team-btn" class="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-3 rounded-lg text-sm shadow-md">
+                                Modifica Squadra
+                            </button>
+                            <button id="view-back-to-home-btn" class="bg-gray-500 hover:bg-gray-600 text-white font-semibold py-2 px-3 rounded-lg text-sm shadow-md">
+                                &larr; Homepage
+                            </button>
+                        </div>
                     </div>
-                </div>
-                <div class="bg-indigo-50 p-6 rounded-lg shadow-md">
-                    <div class="mb-6">
-                        <h3 class="text-xl font-semibold text-indigo-600 mb-3">Contrade Titolari (<span id="view-main-team-count">0</span>/4)</h3>
-                        <p class="text-xs text-indigo-500 mb-2">Puoi riordinare o scambiare con la riserva trascinando.</p>
-                        <ul id="view-main-team-list" class="space-y-2 min-h-[220px] bg-white p-3 rounded-md border border-indigo-200"></ul>
+
+                    <div class="bg-indigo-50 p-4 md:p-6 rounded-lg shadow-md">
+                        <div class="mb-6">
+                            <h3 class="text-lg md:text-xl font-semibold text-indigo-600 mb-2">Contrade Titolari (<span id="view-main-team-count">0</span>/4)</h3>
+                            <p class="text-xs text-indigo-500 mb-2">Puoi riordinare o scambiare con la riserva trascinando.</p>
+                            <ul id="view-main-team-list" class="space-y-2 min-h-[200px] bg-white p-3 rounded-md border border-indigo-200"></ul>
+                        </div>
+                        <div>
+                            <h3 class="text-lg md:text-xl font-semibold text-indigo-600 mb-2">Riserva (<span id="view-reserve-team-count">0</span>/1)</h3>
+                            <p class="text-xs text-indigo-500 mb-2">Puoi scambiare con i titolari trascinando.</p>
+                            <ul id="view-reserve-team-list" class="min-h-[80px] bg-white p-3 rounded-md border border-indigo-200"></ul>
+                        </div>
                     </div>
-                    <div>
-                        <h3 class="text-xl font-semibold text-indigo-600 mb-3">Riserva (<span id="view-reserve-team-count">0</span>/1)</h3>
-                        <p class="text-xs text-indigo-500 mb-2">Puoi scambiare con i titolari trascinando.</p>
-                        <ul id="view-reserve-team-list" class="min-h-[80px] bg-white p-3 rounded-md border border-indigo-200"></ul>
+
+                    <div id="view-budget-display" class="text-center text-base md:text-lg font-medium text-gray-700 bg-white p-4 rounded-lg shadow-sm">
+                        Budget Rimanente: <span id="view-budget-amount" class="font-bold text-green-600"></span> Monete
                     </div>
-                </div>
-                 <div id="view-budget-display" class="mt-6 text-center text-lg font-medium text-gray-700">
-                    Budget Rimanente: <span id="view-budget-amount" class="font-bold text-green-600"></span> Monete
                 </div>
             </div>
         </section>
 
         <section id="team-builder-content" class="main-section">
             <div class="container mx-auto max-w-5xl p-4 md:p-8 mt-4 md:mt-8">
-                 <button id="builder-back-to-home-btn" class="mb-4 md:mb-6 bg-gray-500 hover:bg-gray-600 active:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg text-sm shadow-md cursor-pointer w-full md:w-auto">
-                    &larr; Torna alla Homepage
-                </button>
+                <div class="flex flex-col gap-4">
+                    <button id="builder-back-to-home-btn" class="bg-gray-500 hover:bg-gray-600 active:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg text-sm shadow-md cursor-pointer w-full md:w-auto">
+                        &larr; Torna alla Homepage
+                    </button>
 
-                <section id="budget-section" class="mb-8 p-6 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-lg shadow-lg text-center">
-                    <h2 class="text-2xl font-semibold">Il Tuo Budget</h2>
-                    <p class="text-4xl font-extrabold mt-1"><span id="edit-budget-amount">100</span> Monete</p>
-                </section>
-
-                <div class="grid md:grid-cols-2 gap-4 md:gap-8">
-                    <section id="available-contrade-section" class="bg-gray-50 p-4 md:p-6 rounded-lg shadow-md">
-                        <h2 class="text-xl md:text-2xl font-semibold text-gray-700 mb-4 md:mb-5 border-b pb-2 md:pb-3">Contrade Disponibili</h2>
-                        <div id="contrade-list" class="space-y-3 md:space-y-4 max-h-[50vh] md:max-h-[60vh] overflow-y-auto pr-2"></div>
+                    <section id="budget-section" class="p-4 md:p-6 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-lg shadow-lg text-center">
+                        <h2 class="text-2xl font-semibold">Il Tuo Budget</h2>
+                        <p class="text-4xl font-extrabold mt-1"><span id="edit-budget-amount">100</span> Monete</p>
                     </section>
 
-                    <section id="your-team-section" class="bg-indigo-50 p-6 rounded-lg shadow-md">
-                        <h2 class="text-2xl font-semibold text-indigo-700 mb-5 border-b border-indigo-200 pb-3">Componi la Tua Squadra</h2>
-                        <div class="mb-6">
-                            <h3 class="text-xl font-semibold text-indigo-600 mb-3">Contrade Titolari (<span id="edit-main-team-count">0</span>/4) - Seleziona un Capitano</h3>
-                            <p class="text-xs text-indigo-500 mb-2">Puoi riordinare o scambiare con la riserva trascinando.</p>
-                            <ul id="edit-main-team-list" class="space-y-2 min-h-[220px] bg-white p-3 rounded-md border border-indigo-200"></ul>
-                        </div>
-                        <div>
-                            <h3 class="text-xl font-semibold text-indigo-600 mb-3">Riserva (<span id="edit-reserve-team-count">0</span>/1)</h3>
-                            <p class="text-xs text-indigo-500 mb-2">Puoi scambiare con i titolari trascinando.</p>
-                            <ul id="edit-reserve-team-list" class="min-h-[80px] bg-white p-3 rounded-md border border-indigo-200"></ul>
-                        </div>
+                    <div class="grid md:grid-cols-2 gap-4 md:gap-8">
+                        <section id="available-contrade-section" class="bg-gray-50 p-4 md:p-6 rounded-lg shadow-md">
+                            <h2 class="text-xl md:text-2xl font-semibold text-gray-700 mb-4 border-b pb-2">Contrade Disponibili</h2>
+                            <div id="contrade-list" class="space-y-3 max-h-[40vh] md:max-h-[60vh] overflow-y-auto pr-2"></div>
+                        </section>
+
+                        <section id="your-team-section" class="bg-indigo-50 p-4 md:p-6 rounded-lg shadow-md">
+                            <div class="mb-4 border-b border-indigo-200 pb-3">
+                                <h2 class="text-xl md:text-2xl font-semibold text-indigo-700 mb-3">Componi la Tua Squadra</h2>
+                                <div class="grid grid-cols-2 gap-2">
+                                    <button id="save-and-view-team-btn" class="bg-green-600 hover:bg-green-700 active:bg-green-800 text-white font-bold py-2 px-3 rounded-lg text-sm shadow-md disabled:bg-gray-400" disabled>
+                                        Salva e Visualizza
+                                    </button>
+                                    <button id="reset-team-btn" class="bg-red-500 hover:bg-red-600 active:bg-red-700 text-white font-bold py-2 px-3 rounded-lg text-sm shadow-md">
+                                        Resetta Squadra
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="mb-6">
+                                <h3 class="text-lg font-semibold text-indigo-600 mb-2">Contrade Titolari (<span id="edit-main-team-count">0</span>/4)</h3>
+                                <p class="text-xs text-indigo-500 mb-2">Seleziona un Capitano e trascina per riordinare</p>
+                                <ul id="edit-main-team-list" class="space-y-2 min-h-[200px] bg-white p-3 rounded-md border border-indigo-200"></ul>
+                            </div>
+
+                            <div>
+                                <h3 class="text-lg font-semibold text-indigo-600 mb-2">Riserva (<span id="edit-reserve-team-count">0</span>/1)</h3>
+                                <p class="text-xs text-indigo-500 mb-2">Trascina per scambiare con i titolari</p>
+                                <ul id="edit-reserve-team-list" class="min-h-[80px] bg-white p-3 rounded-md border border-indigo-200"></ul>
+                            </div>
+                        </section>
+                    </div>
+
+                    <section id="message-section" class="text-center min-h-[24px]">
+                        <p id="message-text" class="text-red-600 font-semibold h-6"></p>
                     </section>
                 </div>
-
-                <section id="message-section" class="mt-6 md:mt-8 text-center min-h-[24px]">
-                    <p id="message-text" class="text-red-600 font-semibold h-6"></p>
-                </section>
-
-                <section id="action-section" class="mt-6 md:mt-8 text-center space-y-3 md:space-y-0 md:space-x-4">
-                    <button id="save-and-view-team-btn" class="bg-green-600 hover:bg-green-700 active:bg-green-800 text-white font-bold py-3 px-6 md:px-8 rounded-lg text-base md:text-lg shadow-md disabled:bg-gray-400 w-full md:w-auto" disabled>
-                        Salva e Visualizza Squadra
-                    </button>
-                    <button id="reset-team-btn" class="bg-red-500 hover:bg-red-600 active:bg-red-700 text-white font-bold py-3 px-6 md:px-8 rounded-lg text-base md:text-lg shadow-md w-full md:w-auto">
-                        Resetta Squadra
-                    </button>
-                </section>
             </div>
         </section>
     </main>
@@ -535,7 +568,7 @@
 
         function renderTeamShared(mainListEl, reserveListEl, isViewMode) {
             if (!mainListEl || !reserveListEl) return;
-            const dragHandleSVG = `<svg class="drag-handle w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M9 4C9 4.55228 8.55228 5 8 5C7.44772 5 7 4.55228 7 4C7 3.44772 7.44772 3 8 3C8.55228 3 9 3.44772 9 4Z"/><path d="M9 12C9 12.5523 8.55228 13 8 13C7.44772 13 7 12.5523 7 12C7 11.4477 7.44772 11 8 11C8.55228 11 9 11.4477 9 12Z"/><path d="M9 20C9 20.5523 8.55228 21 8 21C7.44772 21 7 20.5523 7 20C7 19.4477 7.44772 19 8 19C8.55228 19 9 19.4477 9 20Z"/><path d="M17 4C17 4.55228 16.5523 5 16 5C15.4477 5 15 4.55228 15 4C15 3.44772 15.4477 3 16 3C16.5523 3 17 3.44772 17 4Z"/><path d="M17 12C17 12.5523 16.5523 13 16 13C15.4477 13 15 12.5523 15 12C15 11.4477 15.4477 11 16 11C16.5523 11 17 11.4477 17 12Z"/><path d="M17 20C17 20.5523 16.5523 21 16 21C15.4477 21 15 20.5523 15 20C15 19.4477 15.4477 19 16 19C16.5523 19 17 19.4477 17 20Z"/></svg>`;
+            const dragHandleSVG = `<span class="material-icons drag-handle">drag_indicator</span>`;
             const crownSVG = `<svg class="captain-crown-indicator" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 2a.75.75 0 01.673.418l1.882 3.815 4.21.612a.75.75 0 01.416 1.279l-3.046 2.97.719 4.192a.75.75 0 01-1.088.791L10 13.347l-3.766 1.98a.75.75 0 01-1.088-.79l.72-4.192L2.837 8.124a.75.75 0 01.416-1.28l4.21-.61L9.327 2.42A.75.75 0 0110 2zM4.472 9.68L2 11.908V14.5h16v-2.592l-2.472-2.228-.514 2.993a.75.75 0 01-1.032.63L10 14.653l-2.982 1.148a.75.75 0 01-1.032-.63l-.514-2.993z" clip-rule="evenodd" /></svg>`;
             
             mainListEl.innerHTML = mainTeam.length === 0 ? `<li class="text-gray-400 italic text-center py-10">Seleziona 4 titolari...</li>` 
@@ -610,27 +643,58 @@
         
         let draggedElement = null, placeholder = null;
         function createPlaceholder() { const p = document.createElement('li'); p.className = 'placeholder'; return p; }
-        function handleDragStart(e) { 
-            if (e.target.closest('button.remove-btn') || e.target.classList.contains('captain-selector')) { e.preventDefault(); return; } 
-            draggedElement = e.target.closest('li.draggable'); if (!draggedElement) return;
+        function handleDragStart(e) {
+            if (e.target.closest('button.remove-btn') || 
+                e.target.classList.contains('captain-selector') || 
+                e.target.closest('.captain-selector')) {
+                e.preventDefault();
+                return;
+            }
+
+            draggedElement = e.target.closest('li.draggable');
+            if (!draggedElement) return;
+
             e.dataTransfer.effectAllowed = 'move';
-            e.dataTransfer.setData('text/id', draggedElement.dataset.id);
+            e.dataTransfer.setData('text/plain', draggedElement.dataset.id);
             e.dataTransfer.setData('text/origin', draggedElement.dataset.origin);
-            setTimeout(() => { if(draggedElement) draggedElement.classList.add('dragging'); }, 0);
+
+            requestAnimationFrame(() => {
+                if (draggedElement) {
+                    draggedElement.classList.add('dragging');
+                }
+            });
+
+            if (e.type === 'touchstart') {
+                e.preventDefault();
+            }
         }
-        function handleDragOver(e) { 
-            e.preventDefault(); if (!draggedElement) return;
-            const targetList = e.target.closest('ul'); 
+        function handleDragOver(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            if (!draggedElement) return;
+
+            const targetList = e.target.closest('ul');
             if (!targetList || ![editMainTeamListEl, editReserveTeamListEl, viewMainTeamListEl, viewReserveTeamListEl].includes(targetList)) return;
+
             targetList.classList.add('drag-over-active');
+
             if (targetList.isSameNode(editMainTeamListEl) || targetList.isSameNode(viewMainTeamListEl)) {
-                if (!placeholder) placeholder = createPlaceholder(); 
+                if (!placeholder) {
+                    placeholder = createPlaceholder();
+                }
+
                 const targetLi = e.target.closest('li.draggable:not(.dragging)');
                 if (targetLi) {
                     const rect = targetLi.getBoundingClientRect();
-                    if (e.clientY < rect.top + rect.height / 2) targetList.insertBefore(placeholder, targetLi);
-                    else targetList.insertBefore(placeholder, targetLi.nextSibling);
-                } else if (!targetList.querySelector('li.draggable:not(.dragging)')) { 
+                    const mouseY = e.type === 'touchmove' ? e.touches[0].clientY : e.clientY;
+                    
+                    if (mouseY < rect.top + rect.height / 2) {
+                        targetList.insertBefore(placeholder, targetLi);
+                    } else {
+                        targetList.insertBefore(placeholder, targetLi.nextSibling);
+                    }
+                } else if (!targetList.querySelector('li.draggable:not(.dragging)')) {
                     targetList.appendChild(placeholder);
                 }
             }
@@ -642,13 +706,20 @@
             }
         }
         function handleDrop(e) {
-            e.preventDefault(); if (!draggedElement) return;
-            const id = e.dataTransfer.getData('text/id'), origin = e.dataTransfer.getData('text/origin');
-            const targetDropListEl = e.target.closest('ul'); 
-            
+            e.preventDefault();
+            e.stopPropagation();
+
+            if (!draggedElement) return;
+
+            const id = e.dataTransfer.getData('text/plain');
+            const origin = e.dataTransfer.getData('text/origin');
+            const targetDropListEl = e.target.closest('ul');
+
             cleanupDragVisuals();
+
             if (!targetDropListEl || ![editMainTeamListEl, editReserveTeamListEl, viewMainTeamListEl, viewReserveTeamListEl].includes(targetDropListEl)) {
-                cleanupDragState(); return;
+                cleanupDragState();
+                return;
             }
             
             const draggedData = (origin === 'main') ? mainTeam.find(c => c.id === id) : reserveTeam;
@@ -711,13 +782,29 @@
         function addDragAndDropListeners(mainListTarget, reserveListTarget) {
             const items = document.querySelectorAll(`#${mainListTarget.id} li.draggable, #${reserveListTarget.id} li.draggable`);
             items.forEach(item => {
-                item.removeEventListener('dragstart', handleDragStart); item.removeEventListener('dragend', handleDragEnd);
-                item.addEventListener('dragstart', handleDragStart); item.addEventListener('dragend', handleDragEnd);
+                item.removeEventListener('dragstart', handleDragStart);
+                item.removeEventListener('dragend', handleDragEnd);
+                item.removeEventListener('touchstart', handleDragStart);
+                item.removeEventListener('touchend', handleDragEnd);
+                item.removeEventListener('touchmove', handleDragOver);
             });
+
+            items.forEach(item => {
+                item.addEventListener('dragstart', handleDragStart);
+                item.addEventListener('dragend', handleDragEnd);
+                item.addEventListener('touchstart', handleDragStart, { passive: false });
+                item.addEventListener('touchend', handleDragEnd);
+                item.addEventListener('touchmove', handleDragOver, { passive: false });
+            });
+
             [mainListTarget, reserveListTarget].forEach(list => {
-                if(list) {
-                    list.removeEventListener('dragover', handleDragOver); list.removeEventListener('dragleave', handleDragLeave); list.removeEventListener('drop', handleDrop);
-                    list.addEventListener('dragover', handleDragOver); list.addEventListener('dragleave', handleDragLeave); list.addEventListener('drop', handleDrop);
+                if (list) {
+                    list.removeEventListener('dragover', handleDragOver);
+                    list.removeEventListener('dragleave', handleDragLeave);
+                    list.removeEventListener('drop', handleDrop);
+                    list.addEventListener('dragover', handleDragOver);
+                    list.addEventListener('dragleave', handleDragLeave);
+                    list.addEventListener('drop', handleDrop);
                 }
             });
         }
